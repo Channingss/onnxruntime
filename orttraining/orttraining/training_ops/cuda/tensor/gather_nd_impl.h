@@ -9,6 +9,7 @@ namespace cuda {
 
 template<typename TIndex>
 void ComputeSliceOffsetsImpl(
+    cudaStream_t stream,
     const size_t num_slices,
     const size_t num_slices_per_batch,
     const size_t input_batch_stride,
@@ -19,6 +20,7 @@ void ComputeSliceOffsetsImpl(
 
 template <typename T>
 void GatherNDImpl(
+    cudaStream_t stream,
     const size_t num_slices,
     const void* input_data,
     void* output_data,
@@ -27,6 +29,7 @@ void GatherNDImpl(
 
 template <typename T>
 void GatherNDGradImpl(
+    cudaStream_t stream,
     const size_t num_slices,
     const void* update_data,
     void* output_data,

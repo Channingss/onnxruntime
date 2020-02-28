@@ -42,12 +42,12 @@ Status CheckBatchDimensionsMatch(
 
 #define TYPED_FUNCTION_CALL_FWD(T)                                                                                                            \
   if (T_type == DataTypeImpl::GetType<T>()) {                                                                                                 \
-    GatherNDImpl<ToCudaType<T>::MappedType>(num_slices, kernel_input_data, kernel_output_data, slice_size, input_slice_offsets_buffer.get()); \
+    GatherNDImpl<ToCudaType<T>::MappedType>(Stream(), num_slices, kernel_input_data, kernel_output_data, slice_size, input_slice_offsets_buffer.get()); \
   }
 
 #define TYPED_FUNCTION_CALL_BWD(T)                                                                                                                \
   if (T_type == DataTypeImpl::GetType<T>()) {                                                                                                     \
-    GatherNDGradImpl<ToCudaType<T>::MappedType>(num_slices, kernel_input_data, kernel_output_data, slice_size, input_slice_offsets_buffer.get()); \
+    GatherNDGradImpl<ToCudaType<T>::MappedType>(Stream(), num_slices, kernel_input_data, kernel_output_data, slice_size, input_slice_offsets_buffer.get()); \
   }
 
 template <typename TIndex>
@@ -88,13 +88,14 @@ Status GatherNDBase::CommonComputeKernel(
       sizes_from_slice_dims_buffer.get(),
       sizes_from_slice_dims.data(),
       sizes_from_slice_dims.size() * sizeof(int64_t),
-      cudaMemcpyHostToDevice));
+      cudaMemcpyHostToDevice, Stream()));
 
   auto input_slice_offsets_buffer = GetScratchBuffer<int64_t>(num_slices);
 
   // TODO error handling for invalid slice indices
   // TODO reuse computed slice offsets from GatherND in GatherNDGrad
   ComputeSliceOffsetsImpl(
+      Stream(),
       num_slices,
       num_slices_per_batch,
       input_batch_stride,
@@ -223,7 +224,7 @@ Status GatherNDGrad<TIndex>::ComputeInternal(OpKernelContext* context) const {
   auto output_tensor = context->Output(0, input_shape);
 
   // TODO this memset can be expensive, a sparse tensor representation would help here
-  CUDA_RETURN_IF_ERROR(cudaMemsetAsync(output_tensor->MutableDataRaw(), 0, output_tensor->SizeInBytes()));
+  CUDA_RETURN_IF_ERROR(cudaMemsetAsync(output_tensor->MutableDataRaw(), 0, output_tensor->SizeInBytes(), Stream()));
 
   auto status = CommonComputeKernel<TIndex>(axis_, input_shape, update_tensor, output_tensor, indices_shape, indices_tensor, false);
   return status;
