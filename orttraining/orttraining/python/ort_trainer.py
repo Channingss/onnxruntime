@@ -596,6 +596,10 @@ class ORTTrainer():
         self.enable_grad_norm_clip_ = enable_grad_norm_clip
         self.frozen_weights_ = frozen_weights
         self.opset_version_ = _opset_version
+
+        # use this special string to workaround a corner case that external loss_scale is passed into train_step as kargs.
+        # see prepare_input_and_fetches for more details.
+        self.loss_scale_input_name = 'unset_loss_scale_input_name'
         self.state_dict_ = None
 
         # use this special string to workaround a corner case that external loss_scale is passed into train_step as kargs.
