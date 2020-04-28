@@ -64,7 +64,7 @@ TEST_P(SessionStateAddGetKernelTest, AddGetKernelTest) {
   auto kernel_def = KernelDefBuilder().SetName("Variable").Provider(kCpuExecutionProvider).SinceVersion(1, 10).Build();
   auto cpu_execution_provider = onnxruntime::make_unique<CPUExecutionProvider>(CPUExecutionProviderInfo(false));
 
-  OpKernelInfo p_info(node, *kernel_def, *cpu_execution_provider, s.GetConstantInitializedTensors(),
+  OpKernelInfo p_info(node, *kernel_def, 0, *cpu_execution_provider, s.GetConstantInitializedTensors(),
                       s.GetOrtValueNameIdxMap(), s.GetFuncMgr(), s.GetDataTransferMgr());
   unique_ptr<TestOpKernel> p_kernel;
   p_kernel.reset(new TestOpKernel(p_info));
