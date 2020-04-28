@@ -279,7 +279,7 @@ class Tanh final : public OpKernel {
       T* output_ptr = output + first;
       onnxruntime::ConstEigenVectorArrayMap<T> xm(data + first, len);
       onnxruntime::EigenVectorArrayMap<T> ym(output_ptr, len);
-      ym = EIGEN_X.tanh();
+      ym = xm.tanh();
     });
     return Status::OK();
   }
