@@ -265,9 +265,22 @@ class Tanh final : public OpKernel {
   }
 
   Status Compute(OpKernelContext* context) const override {
-    const auto* X = context->Input<Tensor>(0);
+    const Tensor* X = context->Input<Tensor>(0);
     Tensor* Y = context->Output(0, X->Shape());
-    EIGEN_Y = EIGEN_X.tanh();
+    ThreadPool* tp = context->GetOperatorThreadPool();
+    const int64_t input_size = X->Shape().Size();
+    std::ptrdiff_t batch_size = static_cast<std::ptrdiff_t>(input_size);
+    // The cost comes from microbenchmark(manual tunning).
+    const double cost = 1;
+    const T* data = X->template Data<T>();
+    T* output = Y->template MutableData<T>();
+    ThreadPool::TryParallelFor(tp, batch_size, cost, [data, output](ptrdiff_t first, ptrdiff_t last) {
+      ptrdiff_t len = last - first;
+      T* output_ptr = output + first;
+      onnxruntime::ConstEigenVectorArrayMap<T> xm(data + first, len);
+      onnxruntime::EigenVectorArrayMap<T> ym(output_ptr, len);
+      ym = EIGEN_X.tanh();
+    });
     return Status::OK();
   }
 };
