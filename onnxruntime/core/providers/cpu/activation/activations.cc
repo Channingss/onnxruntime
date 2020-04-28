@@ -30,19 +30,41 @@ REGISTER_UNARY_ELEMENTWISE_KERNEL(ThresholdedRelu, 10);
 
 template <>
 Status Sigmoid<float>::Compute(OpKernelContext* context) const {
-  const auto* X = context->Input<Tensor>(0);
-  const auto& x_shape = X->Shape();
-  Tensor* Y = context->Output(0, x_shape);
-  MlasComputeLogistic(X->template Data<float>(), Y->template MutableData<float>(), x_shape.Size());
-  return Status::OK();
+  using T = float;
+  const Tensor* X = context->Input<Tensor>(0);
+    Tensor* Y = context->Output(0, X->Shape()); 
+    ThreadPool* tp = context->GetOperatorThreadPool();
+    const int64_t input_size = X->Shape().Size();
+    std::ptrdiff_t batch_size = static_cast<std::ptrdiff_t>(input_size);
+    // The cost comes from microbenchmark(manual tunning).
+    const double cost = 1;
+    const T* data = X->template Data<T>();
+    T* output = Y->template MutableData<T>();
+    ThreadPool::TryParallelFor(tp, batch_size, cost, [data, output](ptrdiff_t first, ptrdiff_t last) {
+      ptrdiff_t len = last - first;
+      T* output_ptr = output + first;
+      MlasComputeLogistic(data + first, output_ptr, static_cast<size_t>(len));
+    });    
+    return Status::OK();  
 }
 
 template <>
 Status Tanh<float>::Compute(OpKernelContext* context) const {
-  const auto* X = context->Input<Tensor>(0);
-  const auto& x_shape = X->Shape();
-  Tensor* Y = context->Output(0, x_shape);
-  MlasComputeTanh(X->template Data<float>(), Y->template MutableData<float>(), x_shape.Size());
-  return Status::OK();
+    using T = float;
+    const Tensor* X = context->Input<Tensor>(0);
+    Tensor* Y = context->Output(0, X->Shape()); 
+    ThreadPool* tp = context->GetOperatorThreadPool();
+    const int64_t input_size = X->Shape().Size();
+    std::ptrdiff_t batch_size = static_cast<std::ptrdiff_t>(input_size);
+    // The cost comes from microbenchmark(manual tunning).
+    const double cost = 2;
+    const T* data = X->template Data<T>();
+    T* output = Y->template MutableData<T>();
+    ThreadPool::TryParallelFor(tp, batch_size, cost, [data, output](ptrdiff_t first, ptrdiff_t last) {
+      ptrdiff_t len = last - first;
+      T* output_ptr = output + first;
+      MlasComputeTanh(data + first, output_ptr, static_cast<size_t>(len));
+    });    
+    return Status::OK();   
 }
 }  // namespace onnxruntime
