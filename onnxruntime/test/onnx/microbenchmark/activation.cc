@@ -253,7 +253,7 @@ BENCHMARK(BM_LeakyReluCompute)
     ->Arg(640000);
 
 static void BM_ParametricSoftplusCompute(benchmark::State& state) {
-  RunSingleNode<ParametricSoftplus<float>>("Softplus", "", {MakeAttribute("alpha", 1.0f), MakeAttribute("beta", 1.0f)},
+  RunSingleNode<ParametricSoftplus<float>>("Softplus", "", {},
                                            state, -2.0f, 2.0f);
 }
 
@@ -282,6 +282,53 @@ BENCHMARK(BM_Selu)
     ->Arg(1000)
     ->Arg(10000)
     ->Arg(20000)
+    ->Arg(40000)
+    ->Arg(80000)
+    ->Arg(160000)
+    ->Arg(320000)
+    ->Arg(640000)
+    ->Arg(1280000);
+
+static void BM_Sigmoid(benchmark::State& state) {
+  RunSingleNode<Sigmoid<float>>("Sigmoid", "", {}, state, -2.0f, 2.0f);
+}
+
+BENCHMARK(BM_Sigmoid)
+    ->UseRealTime()
+    ->Unit(benchmark::TimeUnit::kNanosecond)
+    ->Arg(100)
+    ->Arg(1000)
+    ->Arg(10000)
+    ->Arg(20000)
+    ->Arg(40000)
+    ->Arg(80000)
+    ->Arg(160000)
+    ->Arg(320000)
+    ->Arg(640000)
+    ->Arg(1280000);
+
+
+static void BM_Softsign(benchmark::State& state) {
+  RunSingleNode<Softsign<float>>("Softsign", "", {}, state, -2.0f, 2.0f);
+}
+
+BENCHMARK(BM_Softsign)
+    ->UseRealTime()
+    ->Unit(benchmark::TimeUnit::kNanosecond)  
+    ->Arg(40000)
+    ->Arg(80000)
+    ->Arg(160000)
+    ->Arg(320000)
+    ->Arg(640000)
+    ->Arg(1280000);
+
+static void BM_Tanh(benchmark::State& state) {
+  RunSingleNode<Tanh<float>>("Tanh", "", {}, state, -2.0f, 2.0f);
+}
+
+BENCHMARK(BM_Tanh)
+    ->UseRealTime()
+    ->Unit(benchmark::TimeUnit::kNanosecond)  
     ->Arg(40000)
     ->Arg(80000)
     ->Arg(160000)

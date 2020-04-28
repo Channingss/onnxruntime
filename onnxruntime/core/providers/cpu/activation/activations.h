@@ -115,12 +115,13 @@ class LeakyRelu final : public OpKernel {
   float alpha_;
 };
 
-//This kernel is used by multiple ops so the attributes may not exists
+// This kernel is used by multiple ops so the attributes may not exists
 template <typename T>
 class ParametricSoftplus final : public OpKernel {
  public:
   explicit ParametricSoftplus(const OpKernelInfo& info)
-      : OpKernel(info), alpha_(info.GetAttrOrDefault("alpha", 1.0f)), beta_(info.GetAttrOrDefault("beta", 1.0f)) {}
+      : OpKernel(info), alpha_(info.GetAttrOrDefault("alpha", 1.0f)), beta_(info.GetAttrOrDefault("beta", 1.0f)) {
+  }
 
   Status Compute(OpKernelContext* context) const override {
     const Tensor* X = context->Input<Tensor>(0);
@@ -174,7 +175,7 @@ class Selu final : public OpKernel {
   }
 
   Status Compute(OpKernelContext* context) const override {
-const Tensor* X = context->Input<Tensor>(0);
+    const Tensor* X = context->Input<Tensor>(0);
     Tensor* Y = context->Output(0, X->Shape());
     float alpha = alpha_;
     float gamma = gamma_;
@@ -207,11 +208,22 @@ class Sigmoid final : public OpKernel {
   }
 
   Status Compute(OpKernelContext* context) const override {
-    const auto* X = context->Input<Tensor>(0);
+    const Tensor* X = context->Input<Tensor>(0);
     Tensor* Y = context->Output(0, X->Shape());
-    EIGEN_X_VAR(xm);
-    EIGEN_Y_VAR(ym);
-    ym = (xm >= 0).select(1 / (1. + (-xm.abs()).exp()), 1 - 1 / (1. + (-xm.abs()).exp()));
+    ThreadPool* tp = context->GetOperatorThreadPool();
+    const int64_t input_size = X->Shape().Size();
+    std::ptrdiff_t batch_size = static_cast<std::ptrdiff_t>(input_size);
+    // The cost comes from microbenchmark(manual tunning).
+    const double cost = 1;
+    const T* data = X->template Data<T>();
+    T* output = Y->template MutableData<T>();
+    ThreadPool::TryParallelFor(tp, batch_size, cost, [data, output](ptrdiff_t first, ptrdiff_t last) {
+      ptrdiff_t len = last - first;
+      T* output_ptr = output + first;
+      onnxruntime::ConstEigenVectorArrayMap<T> xm(data + first, len);
+      onnxruntime::EigenVectorArrayMap<T> ym(output_ptr, len);
+      ym = (xm >= 0).select(1 / (1. + (-xm.abs()).exp()), 1 - 1 / (1. + (-xm.abs()).exp()));
+    });
     return Status::OK();
   }
 };
@@ -226,10 +238,22 @@ class Softsign final : public OpKernel {
   }
 
   Status Compute(OpKernelContext* context) const override {
-    const auto* X = context->Input<Tensor>(0);
+    const Tensor* X = context->Input<Tensor>(0);
     Tensor* Y = context->Output(0, X->Shape());
-    EIGEN_X_VAR(xm);
-    EIGEN_Y = (1 + xm.abs()).inverse() * xm;
+    ThreadPool* tp = context->GetOperatorThreadPool();
+    const int64_t input_size = X->Shape().Size();
+    std::ptrdiff_t batch_size = static_cast<std::ptrdiff_t>(input_size);
+    // The cost comes from microbenchmark(manual tunning).
+    const double cost = 1;
+    const T* data = X->template Data<T>();
+    T* output = Y->template MutableData<T>();
+    ThreadPool::TryParallelFor(tp, batch_size, cost, [data, output](ptrdiff_t first, ptrdiff_t last) {
+      ptrdiff_t len = last - first;
+      T* output_ptr = output + first;
+      onnxruntime::ConstEigenVectorArrayMap<T> xm(data + first, len);
+      onnxruntime::EigenVectorArrayMap<T> ym(output_ptr, len);
+      ym = (1 + xm.abs()).inverse() * xm;
+    });
     return Status::OK();
   }
 };
